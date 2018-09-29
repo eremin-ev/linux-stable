@@ -30,7 +30,7 @@ static int trivsm_task_kill(struct task_struct *p, struct siginfo *info,
 	/*
 	 * Permit killing if both are odd or both are even.
 	 */
-	return (pid_src & 1) != (pid_dst & 1);
+	return (pid_src & 1) ^ (pid_dst & 1);
 }
 
 static struct security_hook_list trivsm_hooks[] __lsm_ro_after_init = {
