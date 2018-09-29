@@ -1,0 +1,7 @@
+config SECURITY_TRIVSM
+	bool "Trivial Security Module Kernel Support"
+	depends on SECURITY
+	default n
+	help
+	  This selects the Trivial Security Module.
+	  If you are unsure how to answer, say N.
