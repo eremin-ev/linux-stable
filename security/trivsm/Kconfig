@@ -3,5 +3,11 @@ config SECURITY_TRIVSM
 	depends on SECURITY
 	default n
 	help
-	  This selects the Trivial Security Module.
+	  This selects the Trivial Security Module which
+	  controls whether user can kill own processes.  It
+	  allows to send a signal only if both source and
+	  destination pids have the same oddity.  The module
+	  is disabled by default.  Please do
+	    echo 1 > /proc/sys/kernel/trivsm_enabled
+	  to enable.
 	  If you are unsure how to answer, say N.
