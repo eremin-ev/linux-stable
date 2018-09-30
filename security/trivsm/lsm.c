@@ -4,9 +4,40 @@
 
 #include <linux/types.h>
 #include <linux/sched.h>
+#include <linux/sysctl.h>
 #include <linux/lsm_hooks.h>
 
+/*
+ * TrivSM is disabled by default.  Please do
+ *	echo 1 > /proc/sys/kernel/trivsm_enabled
+ * to enable.
+ */
 int trivsm_enabled = 0;
+
+int zero = 0;
+int one = 1;
+
+static struct ctl_table trivsm_kern_table[] = {
+	{
+		.procname	= "trivsm_enabled",
+		.data		= &trivsm_enabled,
+		.maxlen		= sizeof(trivsm_enabled),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+	{}
+};
+
+static struct ctl_table ctl_kern_table[] = {
+	{
+		.procname	= "kernel",
+		.mode		= 0555,
+		.child		= trivsm_kern_table,
+	},
+	{}
+};
 
 /**
  * trivsm_task_kill - trivsm check on signal delivery
@@ -30,7 +61,7 @@ static int trivsm_task_kill(struct task_struct *p, struct siginfo *info,
 	/*
 	 * Permit killing if both are odd or both are even.
 	 */
-	return (pid_src & 1) ^ (pid_dst & 1);
+	return ((pid_src & 1) ^ (pid_dst & 1)) & trivsm_enabled;
 }
 
 static struct security_hook_list trivsm_hooks[] __lsm_ro_after_init = {
@@ -44,12 +75,18 @@ static struct security_hook_list trivsm_hooks[] __lsm_ro_after_init = {
  */
 static __init int trivsm_init(void)
 {
+	struct ctl_table_header *hdr;
+
 	if (!security_module_enable("trivsm"))
 		return 0;
 
-	trivsm_enabled = 1;
-
 	pr_info("TrivSM: initializing\n");
+
+	hdr = register_sysctl_table(ctl_kern_table);
+	if (!hdr) {
+		pr_info("TrivSM: cannot fill in sysctl table");
+	}
+	kmemleak_not_leak(hdr);
 
 	/*
 	 * Register with LSM
